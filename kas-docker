@@ -39,6 +39,7 @@ usage()
 	printf "%b" "--isar\t\t\tUse kas-isar container to build Isar image.\n"
 	printf "%b" "--docker-args\t\tAdditional arguments to pass to docker for" \
 		"running the build.\n"
+	printf "%b" "--docker-image\t\tAlternative docker image to use instead of the defaults.\n"
 	printf "%b" "-v\t\t\tPrint operations.\n"
 	printf "%b" "--ssh-dir\t\tDirectory containing SSH configurations, " \
 		"avoid $HOME/.ssh unless you fully trust the container.\n"
@@ -52,8 +53,6 @@ trace()
 	eval "$@"
 }
 
-DOCKER_IMAGE=kasproject/kas
-
 if [ -n "${KAS_WORK_DIR}" ]; then
 	KAS_WORK_DIR=$(readlink -f ${KAS_WORK_DIR})
 else
@@ -64,7 +63,7 @@ fi
 while [ $# -gt 0 ]; do
 	case "$1" in
 	--isar)
-		DOCKER_IMAGE=kasproject/kas-isar
+		DOCKER_IMAGE="${DOCKER_IMAGE-kasproject/kas-isar}"
 		if ! LOOP_DEV=$(/sbin/losetup -f 2>/dev/null); then
 			if [ $(id -u) -eq 0 ]; then
 				echo "Error: loop device not available!"
@@ -89,6 +88,11 @@ while [ $# -gt 0 ]; do
 	--docker-args)
 		[ $# -gt 0 ] || usage
 		USER_ARGS=$2
+		shift 2
+		;;
+	--docker-image)
+		[ $# -gt 0 ] || usage
+		DOCKER_IMAGE=$2
 		shift 2
 		;;
 	--ssh-dir)
@@ -130,6 +134,9 @@ while [ $# -gt 0 ]; do
 		;;
 	esac
 done
+
+# set default values for unset options
+DOCKER_IMAGE="${DOCKER_IMAGE-kasproject/kas}"
 
 [ -n "${CMD}" ] || usage
 
